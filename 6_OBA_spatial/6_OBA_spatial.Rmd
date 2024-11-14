@@ -85,8 +85,19 @@ Hint 1: consider what other data you would like to keep as attributes, for examp
 Hint 3: You may want to rename the column names you can use, colnames() and reassign the names, since the ones in the oba data spreadsheet are really ugly. 
 
 ```{r}
+#OBA_df$Dec..Lat.
+#species <- sum(OBA_df$Species == "pacifica")
+#species
+#colnames(OBA_df)
 
+#OBA_df <- OBA_df %>%
+  #rename("Longitude" = "Dec..Long.", "Latitude" = "Dec..Lat.")
+#colnames(OBA_df)
 
+pacifica <- OBA_df[OBA_df$Species == "pacifica", c("Species", "Longitude", "Latitude", "Associated.plant")]
+head(pacifica)
+
+pacifica_sf <- st_as_sf(pacifica, coords = c("Longitude", "Latitude"), crs = 4326)
 ```
 
 b. Plot your exciting bee data!

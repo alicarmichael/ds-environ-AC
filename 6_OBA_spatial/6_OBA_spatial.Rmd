@@ -2,7 +2,7 @@
 title: "Exploring bee-related spatial data"
 output: github_document
 author:
-  - Lauren Ponisio
+  - Ali Carmichael
 ---
 
 <!-- Lesson Overview -->
@@ -27,18 +27,24 @@ library(sf)
 
 a. Import the OBA data.
 ```{r}
-
+OBA_df <- read.csv("OBA_2018-2023.csv")
+head(OBA_df)
 ```
 
 b. Find the columns related to genus and species and paste them together (with a space between) using the function paste(). Name the new column GenusSpecies.
 ```{r}
+#colnames(OBA_df)
+#OBA_df$Genus
+#OBA_df$Species
 
+OBA_df$GenusSpecies <- paste(OBA_df$Genus, OBA_df$Species)
+#head(OBA_df)
 ```
 
 c. Use `sort()` and `unique()` to print the unique values of GenusSpecies in alphabetical order.  How many species are there? 
 
 ```{r}
-
+length(sort(unique(OBA_df$GenusSpecies)))
 ```
 
 Some specimens are not identified to species, only genus. How is this reflected in the data? 
@@ -48,15 +54,22 @@ d. So many bees, so little time. Count up the occurrences of each bee species, a
 You can use the tidyverse or any other functions in R that you like. How many "species" are there? 
 
 ```{r}
+OBA_species_counts <- table(OBA_df$Species)
+greater_than_two <- subset(OBA_species_counts, OBA_species_counts > 2)
 
+length(greater_than_two)
 ```
 
 e. Google a few bee names (that have been seen > 2 times) and find one with an a look that resonates with you.
 
-What is the name of your bee? 
+What is the name of your bee? Anthophora Pacifica
 
 Import the photos into Rmarkdown below (hint: googling bee name "discover life" or "inat" can often get you a photo. Many bees will no have any photos :( 
+```{r, echo=FALSE}
+knitr::include_graphics("BeePicture.png")
 
+#https://www.wanativebeesociety.org/post/the-first-native-bees-of-spring
+```
 # Lab part 2: Plotting the distrubution of your spirit bee. 
 
 How that have chosen your spirit bee, we would like to plot it's distribution. What is the crs of the data? Annoyingly it is not described anywhere in the spreadsheet (always list your crs in your data) but it is the same as what inat uses because all bees have a georeferenced plant host. If the data is in lat long, it is "unprojected" so only a datum will be listed. 

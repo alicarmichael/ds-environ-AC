@@ -1,6 +1,6 @@
 ---
 title: "Exploring bee-related spatial data"
-output: github_document
+output: pdf_document
 author:
   - Ali Carmichael
 ---
@@ -90,11 +90,14 @@ Hint 3: You may want to rename the column names you can use, colnames() and reas
 #species
 #colnames(OBA_df)
 
-#OBA_df <- OBA_df %>%
-  #rename("Longitude" = "Dec..Long.", "Latitude" = "Dec..Lat.")
+OBA_df <- OBA_df %>%
+  rename("Longitude" = "Dec..Long.", "Latitude" = "Dec..Lat.")
 #colnames(OBA_df)
 
-pacifica <- OBA_df[OBA_df$Species == "pacifica", c("Species", "Longitude", "Latitude", "Associated.plant")]
+pacifica <- OBA_df %>%
+  filter(Species == "pacifica", Associated.plant != "") %>%
+  select(Species, Longitude, Latitude, Associated.plant)
+
 head(pacifica)
 
 pacifica_sf <- st_as_sf(pacifica, coords = c("Longitude", "Latitude"), crs = 4326)
@@ -103,7 +106,18 @@ pacifica_sf <- st_as_sf(pacifica, coords = c("Longitude", "Latitude"), crs = 432
 b. Plot your exciting bee data!
 
 ```{r plot-data-points}
-
+ggplot() +
+  geom_sf(data = pacifica_sf, aes(color = Associated.plant), size = 3) +
+  theme_minimal() +
+  labs(title = "Geographical Distribution of Pacifica Bee Species",
+       color = "Plant Species Visited",
+       x = "Longitude",
+       y = "Latitude") +
+  theme(legend.position = "bottom",
+    legend.title = element_text(size = 8),
+    legend.text = element_text(size = 5),
+    legend.key.size = unit(0.25, "lines") 
+        )
 ```
 
 Not so exciting without some kind of background... 
@@ -120,8 +134,23 @@ c. Add your species's points to your choice or an Oregon basemap.
 
 ```{r plot-data-points-basemap}
 library(ggspatial)
-
-
+# I asked chatgpt and looked on the internet for some nice colors
+# for my map and plant species points.
+ggplot() +
+geom_polygon(data = or, aes(x = lon, y = lat, group = group),
+             fill = "#A1D99B", color = "white") +
+geom_sf(data = pacifica_sf, aes(color = Associated.plant), size = 3) +
+  scale_color_viridis_d(option = "plasma") +
+  theme_void() +
+  labs(title = "Geographical Distribution of Pacifica Bee Species in Oregon",
+       color = "Plant Species Visited",
+       x = "Longitude",
+       y = "Latitude") +
+  theme(legend.position = "bottom",
+    legend.title = element_text(hjust = 0.5, size = 8, face = "bold"),
+    legend.text = element_text(size = 5),
+    legend.key.size = unit(0.25, "lines") 
+        )
 ```
 # Lab part 3: Cartography
 
@@ -135,9 +164,50 @@ additional attributes when you converted the dataframe to a spatial object.
 6. Push this lab to your github repo (just the .Rmd, don't push the data!)
 
 ```{r plot-creative}
+beachie_rast <- rast("soil-burn-severity/2020_beachiecreek_sbs/BeachieCreek_SBS_final.tif")
+beachie_rast <- project(beachie_rast, crs(pacifica_sf))
+beachie_df <- as.data.frame(beachie_rast, xy = TRUE)
 
+holiday_rast <- rast("soil-burn-severity/2020_HolidayFarm_sbs/HolidayFarm_SBS_final.tif")
+holiday_rast <- project(holiday_rast, crs(pacifica_sf))
+holiday_df <- as.data.frame(holiday_rast, xy = TRUE)
 
+#pacifica_sf <- st_as_sf(pacifica, coords = c("Longitude", "Latitude"), crs = 4326)
+
+ggplot() +
+geom_polygon(data = or, aes(x = lon, y = lat, group = group),
+             fill = "#A1D99B", color = "white") +
+geom_raster(data = beachie_df, aes(x = x, y = y, fill = Layer_1), alpha = 0.5) +
+geom_raster(data = holiday_df, aes(x = x, y = y, fill = Layer_1), alpha = 0.5) +
+geom_sf(data = pacifica_sf, aes(color = Associated.plant), size = 3) +
+  scale_color_viridis_d(option = "plasma") +
+  scale_fill_viridis_d(option = "inferno", direction = -1) +
+  theme_void() +
+  labs(title = "Geographical Distribution of Pacifica Bee Species \nin Oregon and the 2020 Beachie Creek/Holiday Farm Fires",
+       color = "Plant\nSpecies\nVisited",
+       fill = "Burn\nSeverity",
+       x = "Longitude",
+       y = "Latitude") +
+  theme(legend.position = "bottom",
+    legend.title = element_text(hjust = 0.5, size = 6, face = "bold"),
+    legend.text = element_text(size = 5),
+    legend.key.size = unit(0.25, "lines") 
+        ) +
+  annotation_scale(location = "br") + 
+  annotation_north_arrow(location = "tl", which_north = "true")
+
+beachie_polygon <- as.polygons(beachie_rast)
+beachie_sf <- st_as_sf(beachie_polygon)
+st_write(beachie_sf, "Fire_data/beachie_fire.shp")
+
+holiday_polygon <- as.polygons(holiday_rast)
+holiday_sf <- st_as_sf(holiday_polygon)
+st_write(holiday_sf, "Fire_data/holiday_fire.shp")
 ```
+Geological distribtuion map of the Pacifica bee species in Oregon. The map is color-coded by the plant species 
+visited by these bees and over layed with the fire-affected regions in 2020 by the Beachie Creek and Holiday Farm fires. 
+The Pacifica bee species is not often found in areas affected by the two fires. Pacifica bee species are recorded more 
+often in central and southeastern oregon. There isn't any recorded overlap of these fire areas and Pacifica bee sightings.
 
 We are looking forward to seeing the maps you create! 
 
@@ -148,6 +218,64 @@ b. Create a plot that illustrates this summary data (box plot, barplot, scatter 
 c. Create a map of your cropped spatial data.
 
 ```{r buffers}
+buffer_500 <- st_buffer(pacifica_sf, dist = 500000)
+buffer_750 <- st_buffer(pacifica_sf, dist = 750000)
+buffer_1000 <- st_buffer(pacifica_sf, dist = 1000000)
 
+beachie_500 <- st_intersection(buffer_500, beachie_sf)
+beachie_750 <- st_intersection(buffer_750, beachie_sf)
+beachie_1000 <- st_intersection(buffer_1000, beachie_sf)
+
+holiday_500 <- st_intersection(buffer_500, holiday_sf)
+holiday_750 <- st_intersection(buffer_750, holiday_sf)
+holiday_1000 <- st_intersection(buffer_1000, holiday_sf)
+
+calc_summary_stats <- function(df) {
+  stats <- c(
+    mean = mean(df$Layer_1, na.rm = TRUE),
+    median = median(df$Layer_1, na.rm = TRUE),
+    min = min(df$Layer_1, na.rm = TRUE),
+    max = max(df$Layer_1, na.rm = TRUE)
+  )
+  return(stats)
+}
+
+beachie_500_stats <- calc_summary_stats(beachie_500)
+beachie_750_stats <- calc_summary_stats(beachie_750)
+beachie_1000_stats <- calc_summary_stats(beachie_1000)
+
+holiday_500_stats <- calc_summary_stats(holiday_500)
+holiday_750_stats <- calc_summary_stats(holiday_750)
+holiday_1000_stats <- calc_summary_stats(holiday_1000)
+
+summary_stats <- data.frame(
+  Buffer = c("500 km", "750 km", "1000 km"),
+  Beachie_Mean = c(beachie_500_stats["mean"], beachie_750_stats["mean"], beachie_1000_stats["mean"]),
+  Beachie_Median = c(beachie_500_stats["median"], beachie_750_stats["median"], beachie_1000_stats["median"]),
+  Beachie_Min = c(beachie_500_stats["min"], beachie_750_stats["min"], beachie_1000_stats["min"]),
+  Beachie_Max = c(beachie_500_stats["max"], beachie_750_stats["max"], beachie_1000_stats["max"]),
+  Holiday_Mean = c(holiday_500_stats["mean"], holiday_750_stats["mean"], holiday_1000_stats["mean"]),
+  Holiday_Median = c(holiday_500_stats["median"], holiday_750_stats["median"], holiday_1000_stats["median"]),
+  Holiday_Min = c(holiday_500_stats["min"], holiday_750_stats["min"], holiday_1000_stats["min"]),
+  Holiday_Max = c(holiday_500_stats["max"], holiday_750_stats["max"], holiday_1000_stats["max"])
+)
+
+print(summary_stats)
+
+library(tidyr)
+beachie_long <- summary_stats %>%
+  pivot_longer(cols = c(Beachie_Mean, Beachie_Median, Beachie_Min, Beachie_Max,
+                        Holiday_Mean, Holiday_Median, Holiday_Min, Holiday_Max),
+               names_to = "Statistic", 
+               values_to = "Value")
+
+ggplot(beachie_long, aes(x = Buffer, y = Statistic, fill = Value)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Burn Severity Summary Statistics for Beachie and Holiday Fires",
+       x = "Buffer Size",
+       y = "Statistics",
+       fill = "Statistics") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue") +
+  theme_minimal()
 
 ```

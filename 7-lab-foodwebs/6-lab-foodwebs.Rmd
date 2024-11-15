@@ -1,6 +1,6 @@
 ---
 title: "Lab 7: Networks"
-author: "Lauren Ponisio"
+author: "Ali Carmichael"
 output:
   html_document: default
   pdf_document: default
@@ -55,7 +55,12 @@ names(carnivores) <- row_labs_sp
 a. Use the above vector of species names to label the row names of the species occurrence and the body size matrices.  The columns of the species occurrence matrix are time points, so we can leave those as V1 etc., but we should set the column names of the mass matrix as "f", "m" (female and male). Use 'head' to check each matrix to see if the names are displayed properly. 
 
 ```{r set-labels}
+rownames(sp_occ) <- row_labs_sp
+head(sp_occ)
 
+colnames(sp_mass) <- c("f", "m")
+rownames(sp_mass) <- row_labs_sp
+head(sp_mass)
 ```
 Yeakel recommended an updated equation to estimate the probability a predator consumed a prey based on their relative body masses from [Rohr et al. 2010.](https://doi.org/10.1086/653667). The  probability of existence of a trophic link between a predator of body-size $m_i$ and a prey of body-size $m_j$ is given by:
 
@@ -75,7 +80,10 @@ inv_logit <- function(x) exp(x)/(1+exp(x))
 ```
 
 ```{r function-mass-comp}
-
+probEat <- function(alpha, beta, gamma, inv_logit, m1, m2) {
+  return (inv_logit(alpha + (beta * log(m2 / m1)) + (gamma * log(m2 / m1) ** 2)))
+}
+  
 ```
 
 c. Now create networks of who eats whom. We will start with adjacency matrices. We will assume all of our species are the size of females. For this step, don't worry about predators vs. prey yet, just calculate all of the feeding probabilities based on body sizes.  
@@ -83,7 +91,13 @@ c. Now create networks of who eats whom. We will start with adjacency matrices. 
 Hint: if you start with a square matrix of all zeros (one row and one column for each species), you can use a for loop to fill in that matrix with probabilities calculated from your function above.
 
 ```{r create-adj-mat}
+feeding_prob <- rep(0, 1)
+feeding_prob
+for(row in sp_mass) {
+  probEat(alpha, beta, gamma, inv_logit, sp_mass$f. sp_mass$m)
+}
 
+probEat(alpha, beta, gamma, inv_logit, 10, 2)
 
 ```
 

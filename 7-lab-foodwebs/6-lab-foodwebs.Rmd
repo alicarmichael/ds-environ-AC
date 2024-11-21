@@ -81,9 +81,8 @@ inv_logit <- function(x) exp(x)/(1+exp(x))
 
 ```{r function-mass-comp}
 probEat <- function(alpha, beta, gamma, inv_logit, m1, m2) {
-  return (inv_logit(alpha + (beta * log(m2 / m1)) + (gamma * log(m2 / m1) ** 2)))
+  return (round((inv_logit(alpha + (beta * log(m2 / m1)) + (gamma * log(m2 / m1)^2))), digits = 2))
 }
-  
 ```
 
 c. Now create networks of who eats whom. We will start with adjacency matrices. We will assume all of our species are the size of females. For this step, don't worry about predators vs. prey yet, just calculate all of the feeding probabilities based on body sizes.  
@@ -91,21 +90,30 @@ c. Now create networks of who eats whom. We will start with adjacency matrices. 
 Hint: if you start with a square matrix of all zeros (one row and one column for each species), you can use a for loop to fill in that matrix with probabilities calculated from your function above.
 
 ```{r create-adj-mat}
-feeding_prob <- rep(0, 1)
-feeding_prob
-for(row in sp_mass) {
-  probEat(alpha, beta, gamma, inv_logit, sp_mass$f. sp_mass$m)
+num_spec <- nrow(sp_mass)
+feeding_matrix <- matrix(0, nrow = num_spec, ncol = num_spec,
+                     dimnames = list(rownames(sp_mass), rownames(sp_mass)))
+
+for (i in 1:num_spec) {
+  for (j in 1:num_spec) {
+    pred_mass <- sp_mass[i, "f"]
+    prey_mass <- sp_mass[j, "f"]
+    feeding_matrix[i, j] <- probEat(alpha, beta, gamma, inv_logit, pred_mass, prey_mass)
+  }
 }
 
-probEat(alpha, beta, gamma, inv_logit, 10, 2)
-
+#head(feeding_matrix)
 ```
 
 d. Now that you have your matrix of potential feeding interactions based on body size, use the 'carnivores' vector created above to set all of the feeding interactions of herbivores (0s in that vector) to zero. In foodwebs the columns are the higher trophic level and the rows are the lower.
 HINT: the function 'sweep' may be useful, though there are many approaches to do the needed matrix multiplication. Print the row and column sums. 
 
 ```{r create-adj-mat-2}
+feeding_matrix <- sweep(feeding_matrix, 1, carnivores, "*")
+feeding_matrix <- sweep(feeding_matrix, 2, carnivores, "*")
 
+print(rowSums(feeding_matrix))
+print(colSums(feeding_matrix))
 ```
 
 # Lab part 2: Breaking the networks into time periods
@@ -117,7 +125,21 @@ Use the function 'empty' from the bipartite package to empty the matrix of rows 
 HINT: You will need to zero out the rows where a species in not present in that time period and the columns. The function 'sweep' may be useful again.
 
 ```{r t1-time-webs}
+spec_in_p2 <- sp_occ[, 2] == 1
+print(sum(spec_in_p2))
 
+new_feeding_matrix <- feeding_matrix[spec_in_p2, spec_in_p2]
+
+new_feeding_matrix_clean <- sweep(new_feeding_matrix, 1, spec_in_p2[spec_in_p2], "*")
+new_feeding_matrix_clean <- sweep(new_feeding_matrix_clean, 2, spec_in_p2[spec_in_p2], "*") 
+
+print(dim(new_feeding_matrix_clean))
+cat("Number of non-zero interactions after cleaning:\n")
+print(sum(new_feeding_matrix_clean > 0))
+print(new_feeding_matrix_clean)
+## Assuming sp_occ is a matrix or data frame with species occurrence across time periods
+# and feeding_matrix is the interaction matrix of species
+?sweep
 ```
 
 b. Now create a network for all of the time points by creating a list where each element is a network. You will need to use a for loop, or an 'lapply' if you feel like experimenting with apply functions. Print the first 5 columns and rows of the 5th time period. 

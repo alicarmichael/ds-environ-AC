@@ -145,7 +145,6 @@ for (i in 1:ncol(sp_occ)) {
   
   networks[[i]] <- new_feeding_matrix
 }
-
 print(networks[[5]][1:5, 1:5])
 ```
 
@@ -168,23 +167,36 @@ b. Plot three networks of your choice, using different colors for the predators 
 
 ```{r plot-g1}
 ## assign groups as carnivore or herbivore
-V(graph)$groups <- ifelse(carnivores == 1, "Carnivore", "Herbivore")
-## convert to a network 3d object
-graph_net3d <- igraph_to_networkD3(graph)
-graph_net3d$nodes$group <- as.factor(V(graph)$groups)
 ## plot the network
 
-forceNetwork(Links = graph_net3d$links, Nodes = graph_net3d$nodes,
-             Source = "source", Target = "target", NodeID = "name", 
-             Group = "group", opacity = 0.8)
+plot_network <- function(graph, carnivores) {
+  
+  V(graph)$groups <- ifelse(carnivores == 1, "Carnivore", "Herbivore")
 
+  graph_net3d <- igraph_to_networkD3(graph)
+  
+  graph_net3d$nodes$group <- as.factor(V(graph)$groups)
+  
+  color <- 'd3.scaleOrdinal().domain(["Carnivore", "Herbivore"]).range(["red", "orange"])'
+  
+  forceNetwork(Links = graph_net3d$links, Nodes = graph_net3d$nodes,
+               Source = "source", Target = "target", NodeID = "name", 
+               Group = "group", opacity = 0.8,
+               zoom = TRUE, fontSize = 14,
+               colourScale = color, opacityNoHover = 0.9)
+}
+
+## Time period 1
+plot_network(network_graphs[[1]], carnivores)
 ```
 
 ```{r plot-g2}
-
+## Time period 2 
+plot_network(network_graphs[[2]], carnivores)
 ```
 
 ```{r plot-g3}
-
+## Time period 3
+plot_network(network_graphs[[3]], carnivores)
 ```
 

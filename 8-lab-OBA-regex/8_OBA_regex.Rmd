@@ -2,7 +2,7 @@
 title: "Using regular expressions"
 output: github_document
 author:
-  - Lauren Ponisio
+  - Ali Carmichael
 ---
 
 <!-- Lesson Overview -->
@@ -29,8 +29,8 @@ Import the OBA data using your favorite parsing function, name the data oba.
 
 a. 
 ```{r}
-
-
+oba <- read.csv("data/OBA_2018-2023.csv")
+head(oba)
 ```
 
 
@@ -38,8 +38,7 @@ b. Examine the unique entries of 'Associated.plant' using any function you find 
 
 
 ```{r}
-
-
+sort(unique(oba$Associated.plant))[1:10]
 ```
 
 1. Sometimes there is only on word, often family, genus, or common name. We will sort these out by creating a column for plant resolution.
@@ -65,8 +64,39 @@ Hint: You must \ any special characters. For example to use \s (matches any spac
 ## Remove the special character
 oba$Associated.plant <- str_replace_all(oba$Associated.plant, "\x92", "")
 
+# Removing blanks
+oba <- oba[oba$Associated.plant != "",]
+
+# Removing "net"
+oba$Associated.plant <- str_replace_all(oba$Associated.plant, "net", "")
+
+# Removing yarrow
+oba$Associated.plant[oba$Associated.plant == "Yarrow"] <- "Achillea millefollium"
+
+# Removing non plant
+oba <- oba[oba$Associated.plant != "Weedy yellow comp.",]
+
+# Removing common names in ()
+oba$Associated.plant <- gsub("\\s*\\(.*?\\)", "", oba$Associated.plant)
+
+# Removing weird words
+oba$Associated.plant <- str_replace_all(oba$Associated.plant, ",.*$", "")
+
+# Removing space
+oba$Associated.plant <- str_replace_all(oba$Associated.plant, "\\s+$", "")
+
+# Removing "sp."
+oba$Associated.plant <- str_replace_all(oba$Associated.plant, " sp$", " sp.")
+
+# Removing "or"
+oba$Associated.plant <- str_replace_all(oba$Associated.plant, " or .*", "")
+
+# Removing lists
+oba <- oba[!grepl(",", oba$Associated.plant),]
+
 ## To check that it worked
 sort(unique(oba$Associated.plant))[1:10]
+
 ```
 
 # Part 2: Making a column for plant resolution
@@ -80,7 +110,22 @@ First use regular expressions to count up the number of words in each element of
 Hint: `str_count` may be useful. 
 
 ```{r}
+# Determining plant resolution
+oba$Plant.resolution <- sapply(oba$Associated.plant, function(x) {
+  words <- unlist(strsplit(x, " "))
+  if (length(words) == 2 && grep1("//.", x)) {
+    "Family/Genus/Common Name"
+  } else if (length(words) == 2 && grep1("//.", x)) {
+    "Genus"
+  } else if (length(words) == 2) {
+    "GenusSpecies"
+  } else {
+    "Missing/complex"
+  }
+})
 
+sort(unique(oba$Associated.plant))[1:10]
+sort(unique(oba$Plant.resolution))[1:10]
 ```
 
 b. Write a for loop to assigned each entry of the column plantResolution to be "family", "genus" or "species". `table()` the final result. 

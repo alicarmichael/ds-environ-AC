@@ -94,9 +94,30 @@ oba$Associated.plant <- str_replace_all(oba$Associated.plant, " or .*", "")
 # Removing lists
 oba <- oba[!grepl(",", oba$Associated.plant),]
 
+# Determining plant resolution
+oba$Plant.resolution <- sapply(oba$Associated.plant, function(x) {
+  words <- unlist(strsplit(x, " "))
+  word_count <- length(words)
+  
+  if (word_count == 1) {
+    if (grepl("aceae$", x)) {
+      "Family"
+    } else {
+      "Genus"
+    }
+  } else if (word_count == 2 || word_count == 3) {
+    if (grepl("sp\\.$", x)) {
+      "Genus"
+    } else {
+      "Species"
+    }
+  } else {
+    "Missing/complex"
+  }
+})
+
 ## To check that it worked
 sort(unique(oba$Associated.plant))[1:10]
-
 ```
 
 # Part 2: Making a column for plant resolution
@@ -110,22 +131,12 @@ First use regular expressions to count up the number of words in each element of
 Hint: `str_count` may be useful. 
 
 ```{r}
-# Determining plant resolution
-oba$Plant.resolution <- sapply(oba$Associated.plant, function(x) {
-  words <- unlist(strsplit(x, " "))
-  if (length(words) == 2 && grep1("//.", x)) {
-    "Family/Genus/Common Name"
-  } else if (length(words) == 2 && grep1("//.", x)) {
-    "Genus"
-  } else if (length(words) == 2) {
-    "GenusSpecies"
-  } else {
-    "Missing/complex"
-  }
+# Word count column
+oba$plantTaxaWordCount <- sapply(oba$Associated.plant, function(x) {
+  length(unlist(strsplit(x, " ")))
 })
 
-sort(unique(oba$Associated.plant))[1:10]
-sort(unique(oba$Plant.resolution))[1:10]
+head(oba[, c("Associated.plant", "plantTaxaWordCount", "Plant.resolution")], 50)
 ```
 
 b. Write a for loop to assigned each entry of the column plantResolution to be "family", "genus" or "species". `table()` the final result. 
@@ -134,20 +145,47 @@ Hint hint: The function `ifelse` returns one value if a TRUE and another if FALS
 Hint hint hint: `grepl` will return or TRUE or FALSE depending on whether it finds the pattern. Be careful with periods in patterns because alone they are a wild card character.  
 
 ```{r}
+oba$Plant.resolution <- NA
 
+for (i in 1:nrow(oba)) {
+  plant_name <- oba$Associated.plant[i]
+  
+  word_count <- length(unlist(strsplit(plant_name, " ")))
+  
+  if (word_count == 1) {
+    if (grepl("aceae$", plant_name)) {
+      oba$Plant.resolution[i] <- "Family"
+    } else {
+      oba$Plant.resolution <- "Genus"
+    }
+  } else if (word_count == 2 || word_count == 3) {
+    if (grepl("sp\\.$", plant_name)) {
+      oba$Plant.resolution[i] <- "Genus"
+    } else {
+      oba$Plant.resolution[i] <- "Species"
+    }
+  } else {
+    oba$Plant.resolution[i] <- "Missing/complex"
+  }
+}
+
+table(oba$Plant.resolution)
 ```
 
 c. For those that are identified to genus but are lacking an sp., add that now so that they will not be treated as separate plant species (i.e., Rosa vs Rosa sp.). You can do this with a regular expression and using 'gsub' or 'string_replace_all' or by counting up the number of words in Associated.plant. 
 ```{r}
-
-
+oba$Associated.plant <-str_replace_all(oba$Associated.plant,
+                                       pattern = "^([A-Za-z]+)$",
+                                       replacement = "\\1 sp.")
 
 ## To check that it worked
-unique(oba$Associated.plant[oba$plantResolution == "genus"])
+#unique(oba$Associated.plant[oba$Plant.resolution == "Genus"])
 ```
 
 d. Create a new column called plantGenus that is the genus if the associated taxa was resolved to species or genus, and NA if it was resolved to family. 
 ```{r}
+oba$plantGenus <- ifelse(oba$Plant.resolution %in% c("Genus", "Species"),
+                         str_extract(oba$Associated.plant, "^[A-Za-z]+"), NA)
 
 ## To check finish with
 table(oba$plantGenus)

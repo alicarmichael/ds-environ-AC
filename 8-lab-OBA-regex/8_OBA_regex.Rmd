@@ -1,6 +1,6 @@
 ---
 title: "Using regular expressions"
-output: github_document
+output: pdf_document
 author:
   - Ali Carmichael
 ---
@@ -56,8 +56,6 @@ In week in lecture last I used a brute force pattern to remove some of these iss
 c. Work together as a class to resolve the issues you listed with the associated taxa column using any function combination that uses regular expressions. You can reassign the contents of the column Associated.plant or create a new column. Return the sorted, unique values, ex: sort(unique(oba$Associated.plant)). Leave the plants resolved only to genus of family for later. 
 
 I have removed a really strange issue with special characters (R converted an apostrophie into a special character) to start things off. 
-
-Hint: You must \ any special characters. For example to use \s (matches any space, tab, or newline) you must use \\s in your pattern.
 
 ```{r}
 
@@ -136,7 +134,7 @@ oba$plantTaxaWordCount <- sapply(oba$Associated.plant, function(x) {
   length(unlist(strsplit(x, " ")))
 })
 
-head(oba[, c("Associated.plant", "plantTaxaWordCount", "Plant.resolution")], 50)
+#head(oba[, c("Associated.plant", "plantTaxaWordCount", "Plant.resolution")], 50)
 ```
 
 b. Write a for loop to assigned each entry of the column plantResolution to be "family", "genus" or "species". `table()` the final result. 
@@ -156,7 +154,7 @@ for (i in 1:nrow(oba)) {
     if (grepl("aceae$", plant_name)) {
       oba$Plant.resolution[i] <- "Family"
     } else {
-      oba$Plant.resolution <- "Genus"
+      oba$Plant.resolution[i] <- "Genus"
     }
   } else if (word_count == 2 || word_count == 3) {
     if (grepl("sp\\.$", plant_name)) {
@@ -179,7 +177,7 @@ oba$Associated.plant <-str_replace_all(oba$Associated.plant,
                                        replacement = "\\1 sp.")
 
 ## To check that it worked
-#unique(oba$Associated.plant[oba$Plant.resolution == "Genus"])
+unique(oba$Associated.plant[oba$Plant.resolution == "Genus"])
 ```
 
 d. Create a new column called plantGenus that is the genus if the associated taxa was resolved to species or genus, and NA if it was resolved to family. 
